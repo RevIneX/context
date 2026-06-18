@@ -33,7 +33,7 @@ func main() {
 
 	var deps []stages.Detector
 	deps = append(deps, &detectors.LanguageDetector{})
-	// TODO: добавить остальные детекторы по мере реализации
+	deps = append(deps, &detectors.ContainerDetector{})
 
 	runner := stages.NewRunner(deps, 0)
 	findings := runner.Run(files)
