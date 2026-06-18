@@ -1,7 +1,7 @@
 package stages
 
 import (
-	"context/internal/data"
+	"github.com/RevIneX/context/internal/data"
 	"runtime"
 	"sync"
 )

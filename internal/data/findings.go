@@ -3,7 +3,6 @@ package data
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"

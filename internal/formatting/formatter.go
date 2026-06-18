@@ -1,7 +1,7 @@
 package formatting
 
 import (
-	"context/internal/data"
+	"github.com/RevIneX/context/internal/data"
 	"sort"
 	"strconv"
 	"strings"

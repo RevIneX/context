@@ -1,10 +1,10 @@
 package main
 
 import (
-	"context/internal/analyzer"
-	"context/internal/detectors"
-	"context/internal/formatting"
-	"context/internal/stages"
+	"github.com/RevIneX/context/internal/analyzer"
+	"github.com/RevIneX/context/internal/detectors"
+	"github.com/RevIneX/context/internal/formatting"
+	"github.com/RevIneX/context/internal/stages"
 	"fmt"
 	"os"
 	"time"
