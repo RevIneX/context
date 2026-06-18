@@ -76,10 +76,10 @@ func Format(findings []data.Finding) string {
 	maxLabelRunes := 0
 	maxNameRunes := 0
 	maxFileBytes := 0
+	notFoundStr := "не обнаружено"
 
 	for _, f := range findings {
-		label := categoryLabels[f.Category]
-		if r := utf8.RuneCountInString(label); r > maxLabelRunes {
+		if r := utf8.RuneCountInString(categoryLabels[f.Category]); r > maxLabelRunes {
 			maxLabelRunes = r
 		}
 		if r := utf8.RuneCountInString(f.Name); r > maxNameRunes {
@@ -90,23 +90,25 @@ func Format(findings []data.Finding) string {
 		}
 	}
 
+	if r := utf8.RuneCountInString(notFoundStr); r > maxNameRunes {
+		maxNameRunes = r
+	}
 	if maxLabelRunes < 6 {
 		maxLabelRunes = 6
 	}
 	if maxNameRunes < 6 {
 		maxNameRunes = 6
 	}
-	maxNameRunes += 1
+	// +2 пробела после имени перед "обнаружено в"
+	maxNameRunes += 2
 	if maxFileBytes < 10 {
 		maxFileBytes = 10
 	}
 
-	const foundInStr = "обнаружено в "
-
 	groups := make(map[string][]data.Finding)
 	for _, f := range findings {
-		group, ok := categoryGroups[f.Category]
-		if !ok {
+		group := categoryGroups[f.Category]
+		if group == "" {
 			group = "header_inside"
 		}
 		groups[group] = append(groups[group], f)
@@ -128,25 +130,7 @@ func Format(findings []data.Finding) string {
 		}
 		firstGroup = false
 
-		// Заголовок
-		if gn.Key == "header_what" {
-			// Позиция начала "ГДЕ ЭТО" = maxLabelRunes + 3 + maxNameRunes + 1 - 1
-			wherePos := maxLabelRunes + 12 + maxNameRunes - 2
-			// Позиция начала "НОМЕР СТРОКИ" вычисляется так, чтобы слово "строка" было над колонкой с номером строки
-			numberPos := wherePos + len(foundInStr) + maxFileBytes - 8
-
-			sb.WriteString("ЧТО ЭТО")
-			for i := utf8.RuneCountInString("ЧТО ЭТО"); i < wherePos; i++ {
-				sb.WriteByte(' ')
-			}
-			sb.WriteString("ГДЕ ЭТО")
-			for i := wherePos + utf8.RuneCountInString("ГДЕ ЭТО"); i < numberPos; i++ {
-				sb.WriteByte(' ')
-			}
-			sb.WriteString("НОМЕР СТРОКИ")
-		} else {
-			sb.WriteString(gn.Label)
-		}
+		sb.WriteString(gn.Label)
 		sb.WriteByte('\n')
 
 		byCategory := make(map[data.Category][]data.Finding)
@@ -156,9 +140,7 @@ func Format(findings []data.Finding) string {
 
 		var cats []data.Category
 		if expected, ok := expectedCategories[gn.Key]; ok {
-			for _, cat := range expected {
-				cats = append(cats, cat)
-			}
+			cats = append(cats, expected...)
 		}
 		for cat := range byCategory {
 			found := false
@@ -178,7 +160,7 @@ func Format(findings []data.Finding) string {
 			ff := byCategory[cat]
 
 			if len(ff) == 0 {
-				writeNotFound(&sb, label, maxLabelRunes)
+				writeLine(&sb, label, maxLabelRunes, notFoundStr, maxNameRunes, "", maxFileBytes, 0)
 				continue
 			}
 
@@ -197,9 +179,9 @@ func Format(findings []data.Finding) string {
 
 			for i, f := range unique {
 				if i == 0 {
-					writeRuneAligned(&sb, label, maxLabelRunes, f.Name, maxNameRunes, f.File, maxFileBytes, f.Line)
+					writeLine(&sb, label, maxLabelRunes, f.Name, maxNameRunes, f.File, maxFileBytes, f.Line)
 				} else {
-					writeRuneAligned(&sb, "", maxLabelRunes, f.Name, maxNameRunes, f.File, maxFileBytes, f.Line)
+					writeLine(&sb, "", maxLabelRunes, f.Name, maxNameRunes, f.File, maxFileBytes, f.Line)
 				}
 			}
 		}
@@ -208,16 +190,7 @@ func Format(findings []data.Finding) string {
 	return sb.String()
 }
 
-func writeNotFound(sb *strings.Builder, label string, labelWidth int) {
-	labelRunes := utf8.RuneCountInString(label)
-	sb.WriteString(label)
-	for i := labelRunes; i < labelWidth; i++ {
-		sb.WriteByte(' ')
-	}
-	sb.WriteString(" :              не обнаружено\n")
-}
-
-func writeRuneAligned(sb *strings.Builder, label string, labelWidth int, name string, nameWidth int, file string, fileWidth int, line int) {
+func writeLine(sb *strings.Builder, label string, labelWidth int, name string, nameWidth int, file string, fileWidth int, line int) {
 	labelRunes := utf8.RuneCountInString(label)
 	sb.WriteString(label)
 	for i := labelRunes; i < labelWidth; i++ {
@@ -225,20 +198,29 @@ func writeRuneAligned(sb *strings.Builder, label string, labelWidth int, name st
 	}
 	sb.WriteString(" : ")
 
-	nameRunes := utf8.RuneCountInString(name)
-	sb.WriteString(name)
-	for i := nameRunes; i < nameWidth; i++ {
-		sb.WriteByte(' ')
+	if file != "" {
+		nameRunes := utf8.RuneCountInString(name)
+		sb.WriteString(name)
+		for i := nameRunes; i < nameWidth; i++ {
+			sb.WriteByte(' ')
+		}
+		sb.WriteString(" обнаружено в ")
+		sb.WriteString(file)
+		for i := len(file); i < fileWidth; i++ {
+			sb.WriteByte(' ')
+		}
+		sb.WriteString(" : ")
+		sb.WriteString(strconv.Itoa(line))
+	} else {
+		spaces := nameWidth - 2
+		if spaces < 0 {
+			spaces = 0
+		}
+		for i := 0; i < spaces; i++ {
+			sb.WriteByte(' ')
+		}
+		sb.WriteString(name)
 	}
 
-	sb.WriteString("       обнаружено в ")
-
-	sb.WriteString(file)
-	for i := len(file); i < fileWidth; i++ {
-		sb.WriteByte(' ')
-	}
-
-	sb.WriteString(" : ")
-	sb.WriteString(strconv.Itoa(line))
 	sb.WriteByte('\n')
 }
