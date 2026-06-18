@@ -65,15 +65,18 @@ var categoryLabels = map[data.Category]string{
 	data.CatPort:          "порты",
 }
 
-func Format(findings []data.Finding) string {
-	if len(findings) == 0 {
-		return ""
-	}
+var expectedCategories = map[string][]data.Category{
+	"header_what":   {data.CatArchitecture, data.CatClient, data.CatServer},
+	"header_how":    {data.CatLanguage, data.CatRuntime, data.CatFramework},
+	"header_inside": {data.CatEnv, data.CatOrchestration, data.CatDatabase, data.CatContainer, data.CatMonitoring, data.CatQueue, data.CatCache, data.CatAPI, data.CatIaC, data.CatCI, data.CatCD},
+	"header_where":  {data.CatWebServer, data.CatPort},
+}
 
-	// Глобальные максимальные ширины
+func Format(findings []data.Finding) string {
 	maxLabelRunes := 0
 	maxNameRunes := 0
 	maxFileBytes := 0
+
 	for _, f := range findings {
 		label := categoryLabels[f.Category]
 		if r := utf8.RuneCountInString(label); r > maxLabelRunes {
@@ -86,6 +89,7 @@ func Format(findings []data.Finding) string {
 			maxFileBytes = len(f.File)
 		}
 	}
+
 	if maxLabelRunes < 6 {
 		maxLabelRunes = 6
 	}
@@ -112,9 +116,11 @@ func Format(findings []data.Finding) string {
 	firstGroup := true
 
 	for _, gn := range groupNames {
-		items, ok := groups[gn.Key]
-		if !ok || len(items) == 0 {
-			continue
+		items := groups[gn.Key]
+		if len(items) == 0 {
+			if _, hasExpected := expectedCategories[gn.Key]; !hasExpected {
+				continue
+			}
 		}
 
 		if !firstGroup {
@@ -122,8 +128,11 @@ func Format(findings []data.Finding) string {
 		}
 		firstGroup = false
 
+		// Заголовок
 		if gn.Key == "header_what" {
-			wherePos := maxLabelRunes + 3 + maxNameRunes + 1 - 1
+			// Позиция начала "ГДЕ ЭТО" = maxLabelRunes + 3 + maxNameRunes + 1 - 1
+			wherePos := maxLabelRunes + 12 + maxNameRunes - 2
+			// Позиция начала "НОМЕР СТРОКИ" вычисляется так, чтобы слово "строка" было над колонкой с номером строки
 			numberPos := wherePos + len(foundInStr) + maxFileBytes - 8
 
 			sb.WriteString("ЧТО ЭТО")
@@ -146,16 +155,32 @@ func Format(findings []data.Finding) string {
 		}
 
 		var cats []data.Category
-		for cat := range byCategory {
-			cats = append(cats, cat)
+		if expected, ok := expectedCategories[gn.Key]; ok {
+			for _, cat := range expected {
+				cats = append(cats, cat)
+			}
 		}
-		sort.Slice(cats, func(i, j int) bool {
-			return string(cats[i]) < string(cats[j])
-		})
+		for cat := range byCategory {
+			found := false
+			for _, c := range cats {
+				if c == cat {
+					found = true
+					break
+				}
+			}
+			if !found {
+				cats = append(cats, cat)
+			}
+		}
 
 		for _, cat := range cats {
 			label := categoryLabels[cat]
 			ff := byCategory[cat]
+
+			if len(ff) == 0 {
+				writeNotFound(&sb, label, maxLabelRunes)
+				continue
+			}
 
 			seen := make(map[string]bool)
 			var unique []data.Finding
@@ -183,6 +208,15 @@ func Format(findings []data.Finding) string {
 	return sb.String()
 }
 
+func writeNotFound(sb *strings.Builder, label string, labelWidth int) {
+	labelRunes := utf8.RuneCountInString(label)
+	sb.WriteString(label)
+	for i := labelRunes; i < labelWidth; i++ {
+		sb.WriteByte(' ')
+	}
+	sb.WriteString(" :              не обнаружено\n")
+}
+
 func writeRuneAligned(sb *strings.Builder, label string, labelWidth int, name string, nameWidth int, file string, fileWidth int, line int) {
 	labelRunes := utf8.RuneCountInString(label)
 	sb.WriteString(label)
@@ -197,7 +231,7 @@ func writeRuneAligned(sb *strings.Builder, label string, labelWidth int, name st
 		sb.WriteByte(' ')
 	}
 
-	sb.WriteString("обнаружено в ")
+	sb.WriteString("       обнаружено в ")
 
 	sb.WriteString(file)
 	for i := len(file); i < fileWidth; i++ {
