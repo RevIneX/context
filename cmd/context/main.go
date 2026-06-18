@@ -36,6 +36,8 @@ func main() {
 		&detectors.LanguageDetector{},
 		&detectors.ContainerDetector{},
 		&detectors.ArchitectureDetector{},
+		&detectors.DatabaseDetector{},
+		&detectors.FrameworkDetector{},
 	)
 
 	runner := stages.NewRunner(deps, 0)
