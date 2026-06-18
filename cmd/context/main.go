@@ -32,8 +32,11 @@ func main() {
 	}
 
 	var deps []stages.Detector
-	deps = append(deps, &detectors.LanguageDetector{})
-	deps = append(deps, &detectors.ContainerDetector{})
+	deps = append(deps,
+		&detectors.LanguageDetector{},
+		&detectors.ContainerDetector{},
+		&detectors.ArchitectureDetector{},
+	)
 
 	runner := stages.NewRunner(deps, 0)
 	findings := runner.Run(files)

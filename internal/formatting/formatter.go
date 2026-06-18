@@ -1,11 +1,12 @@
 package formatting
 
 import (
-	"github.com/RevIneX/context/internal/data"
 	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/RevIneX/context/internal/data"
 )
 
 var groupNames = []struct {
@@ -22,11 +23,9 @@ var categoryGroups = map[data.Category]string{
 	data.CatArchitecture: "header_what",
 	data.CatClient:       "header_what",
 	data.CatServer:       "header_what",
-
-	data.CatLanguage:  "header_how",
-	data.CatRuntime:   "header_how",
-	data.CatFramework: "header_how",
-
+	data.CatLanguage:     "header_how",
+	data.CatRuntime:      "header_how",
+	data.CatFramework:    "header_how",
 	data.CatEnv:           "header_inside",
 	data.CatOrchestration: "header_inside",
 	data.CatDatabase:      "header_inside",
@@ -39,9 +38,8 @@ var categoryGroups = map[data.Category]string{
 	data.CatCI:            "header_inside",
 	data.CatCD:            "header_inside",
 	data.CatUnknown:       "header_inside",
-
-	data.CatWebServer: "header_where",
-	data.CatPort:      "header_where",
+	data.CatWebServer:     "header_where",
+	data.CatPort:          "header_where",
 }
 
 var categoryLabels = map[data.Category]string{
@@ -72,6 +70,35 @@ func Format(findings []data.Finding) string {
 		return ""
 	}
 
+	// Глобальные максимальные ширины
+	maxLabelRunes := 0
+	maxNameRunes := 0
+	maxFileBytes := 0
+	for _, f := range findings {
+		label := categoryLabels[f.Category]
+		if r := utf8.RuneCountInString(label); r > maxLabelRunes {
+			maxLabelRunes = r
+		}
+		if r := utf8.RuneCountInString(f.Name); r > maxNameRunes {
+			maxNameRunes = r
+		}
+		if len(f.File) > maxFileBytes {
+			maxFileBytes = len(f.File)
+		}
+	}
+	if maxLabelRunes < 6 {
+		maxLabelRunes = 6
+	}
+	if maxNameRunes < 6 {
+		maxNameRunes = 6
+	}
+	maxNameRunes += 1
+	if maxFileBytes < 10 {
+		maxFileBytes = 10
+	}
+
+	const foundInStr = "обнаружено в "
+
 	groups := make(map[string][]data.Finding)
 	for _, f := range findings {
 		group, ok := categoryGroups[f.Category]
@@ -79,30 +106,6 @@ func Format(findings []data.Finding) string {
 			group = "header_inside"
 		}
 		groups[group] = append(groups[group], f)
-	}
-
-	maxLabelRunes := 0
-	maxNameLen := 0
-	maxFileLen := 0
-	for cat := range categoryLabels {
-		label := categoryLabels[cat]
-		if r := utf8.RuneCountInString(label); r > maxLabelRunes {
-			maxLabelRunes = r
-		}
-	}
-	for _, f := range findings {
-		if len(f.Name) > maxNameLen {
-			maxNameLen = len(f.Name)
-		}
-		if len(f.File) > maxFileLen {
-			maxFileLen = len(f.File)
-		}
-	}
-	if maxNameLen < 18 {
-		maxNameLen = 18
-	}
-	if maxFileLen < 32 {
-		maxFileLen = 32
 	}
 
 	var sb strings.Builder
@@ -119,7 +122,22 @@ func Format(findings []data.Finding) string {
 		}
 		firstGroup = false
 
-		sb.WriteString(gn.Label)
+		if gn.Key == "header_what" {
+			wherePos := maxLabelRunes + 3 + maxNameRunes + 1 - 1
+			numberPos := wherePos + len(foundInStr) + maxFileBytes - 8
+
+			sb.WriteString("ЧТО ЭТО")
+			for i := utf8.RuneCountInString("ЧТО ЭТО"); i < wherePos; i++ {
+				sb.WriteByte(' ')
+			}
+			sb.WriteString("ГДЕ ЭТО")
+			for i := wherePos + utf8.RuneCountInString("ГДЕ ЭТО"); i < numberPos; i++ {
+				sb.WriteByte(' ')
+			}
+			sb.WriteString("НОМЕР СТРОКИ")
+		} else {
+			sb.WriteString(gn.Label)
+		}
 		sb.WriteByte('\n')
 
 		byCategory := make(map[data.Category][]data.Finding)
@@ -154,9 +172,9 @@ func Format(findings []data.Finding) string {
 
 			for i, f := range unique {
 				if i == 0 {
-					writeAligned(&sb, label, maxLabelRunes, f.Name, maxNameLen, f.File, maxFileLen, f.Line)
+					writeRuneAligned(&sb, label, maxLabelRunes, f.Name, maxNameRunes, f.File, maxFileBytes, f.Line)
 				} else {
-					writeAligned(&sb, "", maxLabelRunes, f.Name, maxNameLen, f.File, maxFileLen, f.Line)
+					writeRuneAligned(&sb, "", maxLabelRunes, f.Name, maxNameRunes, f.File, maxFileBytes, f.Line)
 				}
 			}
 		}
@@ -165,20 +183,21 @@ func Format(findings []data.Finding) string {
 	return sb.String()
 }
 
-func writeAligned(sb *strings.Builder, label string, labelWidth int, name string, nameWidth int, file string, fileWidth int, line int) {
+func writeRuneAligned(sb *strings.Builder, label string, labelWidth int, name string, nameWidth int, file string, fileWidth int, line int) {
 	labelRunes := utf8.RuneCountInString(label)
 	sb.WriteString(label)
-	for i := labelRunes; i < labelWidth+2; i++ {
+	for i := labelRunes; i < labelWidth; i++ {
 		sb.WriteByte(' ')
 	}
 	sb.WriteString(" : ")
 
+	nameRunes := utf8.RuneCountInString(name)
 	sb.WriteString(name)
-	for i := len(name); i < nameWidth; i++ {
+	for i := nameRunes; i < nameWidth; i++ {
 		sb.WriteByte(' ')
 	}
 
-	sb.WriteString(" обнаружено в ")
+	sb.WriteString("обнаружено в ")
 
 	sb.WriteString(file)
 	for i := len(file); i < fileWidth; i++ {
