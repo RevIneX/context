@@ -1,13 +1,14 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"time"
+
 	"github.com/RevIneX/context/internal/analyzer"
 	"github.com/RevIneX/context/internal/detectors"
 	"github.com/RevIneX/context/internal/formatting"
 	"github.com/RevIneX/context/internal/stages"
-	"fmt"
-	"os"
-	"time"
 )
 
 func main() {
@@ -31,8 +32,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var deps []stages.Detector
-	deps = append(deps,
+	deps := []stages.Detector{
 		&detectors.LanguageDetector{},
 		&detectors.ContainerDetector{},
 		&detectors.ArchitectureDetector{},
@@ -40,13 +40,13 @@ func main() {
 		&detectors.FrameworkDetector{},
 		&detectors.WebserverDetector{},
 		&detectors.QueueDetector{},
-	)
+		&detectors.CacheDetector{},
+	}
 
 	runner := stages.NewRunner(deps, 0)
 	findings := runner.Run(files)
 
 	output := formatting.Format(findings)
-
 	if output != "" {
 		fmt.Print(output)
 	}
