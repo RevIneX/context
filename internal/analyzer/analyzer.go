@@ -19,6 +19,7 @@ var allowedExtsMap = map[string]struct{}{
 	".toml": {}, ".json": {}, ".xml": {}, ".ini": {}, ".cfg": {}, ".conf": {},
 	".tf": {}, ".hcl": {}, ".sql": {}, ".sh": {}, ".bash": {}, ".ps1": {},
 	".css": {}, ".scss": {}, ".sass": {}, ".less": {}, ".html": {}, ".htm": {},
+	".graphql": {}, ".gql": {}, ".proto": {}, ".wsdl": {},
 	".md": {}, ".txt": {}, ".properties": {},
 	".cbl": {}, ".cob": {}, ".f90": {}, ".f95": {}, ".f03": {},
 	".pas": {}, ".pp": {}, ".ada": {}, ".lisp": {}, ".lsp": {},
