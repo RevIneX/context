@@ -43,6 +43,7 @@ func main() {
 		&detectors.CacheDetector{},
 		&detectors.APIDetector{},
 		&detectors.IaCDetector{},
+		&detectors.CIDetector{},
 	}
 
 	runner := stages.NewRunner(deps, 0)
