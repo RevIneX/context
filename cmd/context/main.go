@@ -39,6 +39,7 @@ func main() {
 		&detectors.DatabaseDetector{},
 		&detectors.FrameworkDetector{},
 		&detectors.WebserverDetector{},
+		&detectors.QueueDetector{},
 	)
 
 	runner := stages.NewRunner(deps, 0)
