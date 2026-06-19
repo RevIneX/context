@@ -19,7 +19,7 @@ var allowedExtsMap = map[string]struct{}{
 	".toml": {}, ".json": {}, ".xml": {}, ".ini": {}, ".cfg": {}, ".conf": {},
 	".tf": {}, ".hcl": {}, ".sql": {}, ".sh": {}, ".bash": {}, ".ps1": {},
 	".css": {}, ".scss": {}, ".sass": {}, ".less": {}, ".html": {}, ".htm": {},
-	".md": {}, ".txt": {},
+	".md": {}, ".txt": {}, ".properties": {},
 	".cbl": {}, ".cob": {}, ".f90": {}, ".f95": {}, ".f03": {},
 	".pas": {}, ".pp": {}, ".ada": {}, ".lisp": {}, ".lsp": {},
 	".ml": {}, ".mli": {}, ".groovy": {}, ".gvy": {},
@@ -28,6 +28,7 @@ var allowedExtsMap = map[string]struct{}{
 	".ex": {}, ".exs": {}, ".erl": {}, ".hrl": {},
 	".hs": {}, ".lhs": {}, ".clj": {}, ".cljs": {}, ".elm": {},
 	".vue": {}, ".svelte": {}, ".astro": {},
+
 	"dockerfile": {}, "containerfile": {},
 	"docker-compose.yml": {}, "docker-compose.yaml": {},
 	"makefile": {}, "gnumakefile": {},
