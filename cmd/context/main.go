@@ -46,6 +46,7 @@ func main() {
 		&detectors.CIDetector{},
 		&detectors.CDDetector{},
 		&detectors.MonitoringDetector{},
+		&detectors.OrchestrationDetector{},
 	}
 
 	runner := stages.NewRunner(deps, 0)
