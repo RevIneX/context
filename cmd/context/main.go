@@ -38,6 +38,7 @@ func main() {
 		&detectors.ArchitectureDetector{},
 		&detectors.DatabaseDetector{},
 		&detectors.FrameworkDetector{},
+		&detectors.WebserverDetector{},
 	)
 
 	runner := stages.NewRunner(deps, 0)
